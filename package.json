@@ -1,6 +1,6 @@
 {
   "name": "node-wal2json",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -28,5 +28,5 @@
     "lint-staged": "^8.2.1",
     "pre-commit": "^1.2.2"
   },
-  "license": "ISC"
+  "license": "MIT"
 }

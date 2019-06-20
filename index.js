@@ -41,6 +41,20 @@ class Wal2JSONListener extends EventEmitter {
         this.client.connect();
     }
 
+    _readChanges(){
+        const self = this;
+        self.client.query(self.readQuery, function(err, results){
+            if(err){
+                self.stop(err);
+                throw (err);
+            }
+            else{
+                self.waiting = false;
+                self.emit('changes', results.rows);
+            }
+        });
+    }
+
     _error(err){
         this._close();
         this.emit('error', err);
@@ -81,48 +95,75 @@ class Wal2JSONListener extends EventEmitter {
 
     next(){
         const self = this;
+        console.log('this.waiting: ', this.waiting);
         if(!this.running){
             this._error('Please start the listener before requesting changes.');
         }
         else if(this.waiting){
-            this._error('You are trying to read changes before marking the previous changes completed.')
+            this._error('You are trying to read new changes while the previous changes are still being processed.')
         }
         else if(!this.client){
             this._error("This listener doesn't have a valid open client, to add one run restart(client).")
         }
         else if(this.timeout){
+            self.waiting = true;
             this.curTimeout = setTimeout(function(){
-                self.readChanges();
+                self._readChanges();
             }, this.timeout)
         }
         else{
-            self.readChanges();
+            self.waiting = true;
+            self._readChanges();
         }
-    }
-
-    readChanges(){
-        const self = this;
-        this.client.query(this.readQuery, function(err, results){
-            if(err){
-                self.stop(err);
-                throw (err);
-            }
-            else{
-                const changes = results.rows;
-                if(changes || changes.length){
-                    self.emit('changes', changes);
-                }
-                this.waiting = false;
-            }
-        });
     }
 
     stop(err){
         if(this.curTimeout){
             clearTimeout(this.curTimeout);
         }
-        this._close(err)
+        if(this.running){
+            this._close(err)
+        }
     }
 }
 
 module.exports = Wal2JSONListener;
+
+
+
+const pg = require('pg');
+
+
+const client = new pg.Client();
+
+const walOptions = {
+    'include-type-oids': 1,
+    'include-types': 0,
+    'add-tables': 'public.orders'
+};
+
+const options = {
+    slotName: 'subscription_slot',
+    timeout: 500
+};
+
+const wal2JSONListener = new Wal2JSONListener(client, options, walOptions);
+
+wal2JSONListener.on('changes', function(changes){
+    console.log('changes: ', changes);
+
+    wal2JSONListener.next();
+});
+
+wal2JSONListener.on('error', function(err){
+    console.log('err: ', err);
+});
+
+wal2JSONListener.start();
+wal2JSONListener.next();
+
+
+// setTimeout(function(){
+//     wal2JSONListener.stop();
+//     console.log('wal2JSONListener.running: ', wal2JSONListener.running);
+// }, 1000);
