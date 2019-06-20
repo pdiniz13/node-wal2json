@@ -71,7 +71,7 @@ class Wal2JSONListener extends EventEmitter {
         this.waiting = false;
         this.running = true;
         const self = this;
-        _init().then(function(){
+        _init(this.client, this.slotName, this.temporary).then(function(){
             self.emit('start', true);
             self.next();
         }).catch(function(err){
