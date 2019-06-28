@@ -95,7 +95,6 @@ class Wal2JSONListener extends EventEmitter {
 
     next(){
         const self = this;
-        console.log('this.waiting: ', this.waiting);
         if(!this.running){
             this._error('Please start the listener before requesting changes.');
         }
