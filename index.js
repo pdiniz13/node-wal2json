@@ -29,7 +29,7 @@ const _init = async function(client, slotName, temporary){
     }
 };
 
-/*
+/**
  * Wal2JSONListener will emit 'changes' event containing the rows as returned
  * from pg_catalog.pg_logical_slot_get_changes.  This event may contain any number of rows.
  *
